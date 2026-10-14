@@ -7,7 +7,8 @@ type Content struct {
 	RawID        string
 	RawLink      string
 	Title        string
-	Description  string `gorm:"-"` //ignore to db
+	Description  string   `gorm:"-"` //ignore to db
+	ImageURLs    []string `gorm:"-"` //images are only needed for the immediate notification
 	TelegraphURL string
 	EditTime
 }

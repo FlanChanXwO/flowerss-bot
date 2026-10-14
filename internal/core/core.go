@@ -293,13 +293,18 @@ func (c *Core) AddSourceContents(
 	var contents []*model.Content
 	for _, item := range items {
 		wg.Add(1)
+		description := item.Content
+		if description == "" {
+			description = item.Description
+		}
 		previewURL := ""
 		if config.EnableTelegraph && len([]rune(item.Content)) > config.PreviewText {
 			previewURL, _ = tgraph.PublishHtml(source.Title, item.Title, item.Link, item.Content)
 		}
 		content := &model.Content{
 			Title:        strings.Trim(item.Title, " "),
-			Description:  item.Content, //replace all kinds of <br> tag
+			Description:  description,
+			ImageURLs:    feed.ImageURLs(item),
 			SourceID:     source.ID,
 			RawID:        item.GUID,
 			HashID:       model.GenHashID(source.Link, item.GUID),
