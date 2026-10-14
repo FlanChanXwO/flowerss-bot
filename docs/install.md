@@ -21,6 +21,19 @@
 
 常规（General）话题使用与旧版相同的订阅范围（`thread_id=0`），普通群组、频道和私聊保持原有行为。
 
+### 推文媒体与阅读排版
+
+从 RSS/Atom 的 HTML、enclosure、Media RSS 中自动识别并发送静态图片、MP4 视频、GIF 动图、X/Twitter 的 `tweet_video` MP4 动图及音频。
+单张图片、视频和动图以 Telegram 原生媒体消息发送；多张图片与视频可以组成原生相册（每组 2～10 个），超过十个会分批发送。
+由于 Telegram 不允许动画与图片/视频混入同一 `sendMediaGroup`，动图按原文顺序单独发送。发送失败会回退为带原文链接的文字消息。
+
+默认预览前 400 字；可以在 `config.yml` 中通过 `preview_text: 0` 禁用预览，或改成其他长度。
+标题、原文链接和标签使用原有的 `message_tpl`、`message_mode` 配置，未配置自定义模板时使用更紧凑的消息排版。
+
+**Telegraph 是可选功能。** 填写 `telegraph_token` 或 `telegraph_account` 后，文章正文可以生成 Telegraph 阅读链接；
+当媒体说明超过 Telegram 字数限制、且 Telegraph 页面存在时，优先发送带阅读链接的简短说明。Telegraph 不用来代替 Telegram 原生视频发送，也不会替视频重新上传文件。
+如果视频链接需要登录、已过期、超过 Telegram 限制或无法由 Telegram 服务器访问，仍需从原文打开。
+
 **已有数据提示：**旧版 flowerss-bot 从未记录话题 ID，因此之前在任意话题创建的订阅无法自动判断原来的话题。它们在升级后会归属**常规（General）**话题。若需要把旧 RSS 分配到不同话题，在目标话题重新执行 `/sub <RSS URL>`；然后视需要在常规话题执行 `/unsub <RSS URL>`。相同 RSS 可以同时订阅在多个话题，不会重复抓取。
 
 1. 下载配置文件
@@ -71,7 +84,7 @@ bot_token: XXX
 #  - token_2
 telegraph_token: xxxx
 user_agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/51.0.2704.103 Safari/537.36
-preview_text: 0
+preview_text: 400
 disable_web_page_preview: false
 socks5: 127.0.0.1:1080
 update_interval: 10
@@ -97,7 +110,7 @@ allowed_users:
 | --------------------------| ----------------------------------------- | ------------------------------------------ |
 | bot_token                 | Telegram Bot Token                        | 必填                                       |
 | telegraph_token           | Telegraph Token, 用于转存原文到 Telegraph   | 可忽略（不转存原文到 Telegraph ）          |
-| preview_text              | 纯文字预览字数（不借助Telegraph）            |可忽略（默认0, 0为禁用）                    |
+| preview_text              | 文字预览长度；有 Telegraph 时可附阅读链接   |可忽略（默认400, 0为禁用）                  |
 | user_agent                | User Agent                                |可忽略                                     |
 | disable_web_page_preview  | 是否禁用 web 页面预览                       | 可忽略（默认 false, true 为禁用）          |
 | update_interval           | RSS 源扫描间隔（分钟）                      | 可忽略（默认 10）                          |

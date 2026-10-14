@@ -1,11 +1,41 @@
 package config
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/telebot.v3"
 )
+
+func TestRichMessageLayoutAndTelegraphLinks(t *testing.T) {
+	msg, err := (TplData{
+		SourceTitle:     "X/Twitter",
+		ContentTitle:    "New post",
+		RawLink:         "https://example.org/post?a=1&b=2",
+		PreviewText:     "A <video> & a photo",
+		TelegraphURL:    "https://telegra.ph/read-01-01",
+		EnableTelegraph: true,
+		Tags:            "#rss",
+	}).Render(telebot.ModeHTML)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, part := range []string{
+		"<b>X/Twitter</b>",
+		"<a href=\"https://example.org/post?a=1&amp;b=2\">New post</a>",
+		"A &lt;video&gt; &amp; a photo",
+		"<a href=\"https://telegra.ph/read-01-01\">阅读全文</a>",
+		"#rss",
+	} {
+		if !strings.Contains(msg, part) {
+			t.Fatalf("expected message fragment %q: %s", part, msg)
+		}
+	}
+	if strings.Contains(msg, "---------- Preview ----------") {
+		t.Fatal("obsolete preview delimiters remain in message")
+	}
+}
 
 func TestTplData_Render(t1 *testing.T) {
 	type fields struct {

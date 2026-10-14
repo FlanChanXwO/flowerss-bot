@@ -9,6 +9,7 @@ type Content struct {
 	Title        string
 	Description  string   `gorm:"-"` //ignore to db
 	ImageURLs    []string `gorm:"-"` //images are only needed for the immediate notification
+	Media        []Media   `gorm:"-"` //typed media are never persisted
 	TelegraphURL string
 	EditTime
 }

@@ -25,7 +25,7 @@ type Bot struct {
 }
 
 func NewBot(core *core.Core) *Bot {
-	log.Infof("init telegram bot, token %s, endpoint %s", config.BotToken, config.TelegramEndpoint)
+	log.Infof("init telegram bot, endpoint %s", config.TelegramEndpoint)
 	settings := tb.Settings{
 		URL:    config.TelegramEndpoint,
 		Token:  config.BotToken,
@@ -172,16 +172,28 @@ func (b *Bot) BroadcastNews(source *model.Source, subs []*model.Subscribe, conte
 				)
 				return
 			}
-			// Send images as a single Telegram album, preserving the old text-only
-			// delivery when an image is unavailable or there are fewer than two.
-			captionSent := false
-			if album, captionFits := newsAlbum(content.ImageURLs, msg); len(album) > 0 {
-				if _, err := b.tb.SendAlbum(u, album, o); err != nil {
-					zap.S().Warnw("send RSS photo album failed, falling back to text",
-						"error", err, "user id", sub.UserID, "source id", sub.SourceID)
-				} else {
-					captionSent = captionFits
+			media := content.Media
+			// Preserve the old in-memory content format for callers that construct
+			// Content directly, rather than through the RSS parser.
+			if len(media) == 0 {
+				for _, url := range content.ImageURLs {
+					media = append(media, model.Media{URL: url, Kind: model.MediaPhoto})
 				}
+			}
+			caption := msg
+			if !albumCaptionFits(caption) && tpldata.EnableTelegraph {
+				// For a long article, use a short media caption linking to its
+				// Telegraph reading view rather than duplicating its whole preview.
+				brief := *tpldata
+				brief.PreviewText = ""
+				if short, err := brief.Render(config.MessageMode); err == nil && albumCaptionFits(short) {
+					caption = short
+				}
+			}
+			captionSent, mediaErr := b.sendNewsMedia(u, o, media, caption)
+			if mediaErr != nil {
+				zap.S().Warnw("RSS media delivery was incomplete; original post link remains available",
+					"error", mediaErr, "user id", sub.UserID, "source id", sub.SourceID)
 			}
 			if captionSent {
 				continue

@@ -14,7 +14,9 @@
 
 - 常见的 RSS Bot 该有的功能
 - 支持 Telegram 应用内 instant view
-- RSS 文章包含 2～10 张图片时，以 Telegram 原生相册推送；较短正文作为相册说明，较长正文另发文本；相册失败时退回原有文本推送
+- RSS 图片、视频、GIF/动图（含 X/Twitter 的 MP4 动图）、音频原生推送；图片与视频支持混合相册，2～10 个媒体组成一组，超过 10 个自动分组；动画与音频单独发送
+- 默认预览最多 400 字，保留标题、文章来源及订阅标签；支持既有自定义消息模板；启用 Telegraph 后，长正文可使用简短媒体说明和 Telegraph 阅读链接
+- 失败的媒体组自动尝试逐条发送，全部不可用时保留 RSS 原文链接；同一条目最多处理 40 个媒体地址
 - Docker 镜像由 GitHub Actions 预先构建（支持 amd64、arm64）：`ghcr.io/flanchanxwo/flowerss-bot:latest`
 - 支持 Telegram 话题群组：每个话题独立订阅列表、设置、暂停与推送；多个话题可订阅同一个 RSS；保留私聊与普通群组兼容
 - 支持为 Group 和 Channel 订阅 RSS 消息

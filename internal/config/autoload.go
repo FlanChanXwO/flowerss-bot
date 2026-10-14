@@ -163,6 +163,9 @@ func (t TplData) Render(mode tb.ParseMode) (string, error) {
 		t.SourceTitle = t.replaceHTMLTags(t.SourceTitle)
 		t.ContentTitle = t.replaceHTMLTags(t.ContentTitle)
 		t.PreviewText = t.replaceHTMLTags(t.PreviewText)
+		t.RawLink = t.replaceHTMLTags(t.RawLink)
+		t.TelegraphURL = t.replaceHTMLTags(t.TelegraphURL)
+		t.Tags = t.replaceHTMLTags(t.Tags)
 	}
 
 	if err := MessageTpl.Execute(wb, t); err != nil {
