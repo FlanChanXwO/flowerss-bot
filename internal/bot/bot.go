@@ -167,6 +167,20 @@ func (b *Bot) BroadcastNews(source *model.Source, subs []*model.Subscribe, conte
 				)
 				return
 			}
+			// Send images as a single Telegram album, preserving the old text-only
+			// delivery when an image is unavailable or there are fewer than two.
+			captionSent := false
+			if album, captionFits := newsAlbum(content.ImageURLs, msg); len(album) > 0 {
+				if _, err := b.tb.SendAlbum(u, album, o); err != nil {
+					zap.S().Warnw("send RSS photo album failed, falling back to text",
+						"error", err, "user id", sub.UserID, "source id", sub.SourceID)
+				} else {
+					captionSent = captionFits
+				}
+			}
+			if captionSent {
+				continue
+			}
 			if _, err := b.tb.Send(u, msg, o); err != nil {
 
 				if strings.Contains(err.Error(), "Forbidden") {
