@@ -28,9 +28,9 @@ func TestBroadcastNewsAlbum(t *testing.T) {
 	}{
 		{name: "album caption", images: photos, title: "Short title", wantCalls: []string{"sendMediaGroup"}, wantCaption: true},
 		{name: "long text", images: photos, title: strings.Repeat("a", 1100), wantCalls: []string{"sendMediaGroup", "sendMessage"}},
-		{name: "failed album", images: photos, title: "Short title", albumError: true, wantCalls: []string{"sendMediaGroup", "sendMessage"}, wantCaption: true},
+		{name: "failed album", images: photos, title: "Short title", albumError: true, wantCalls: []string{"sendMediaGroup", "sendPhoto", "sendPhoto"}, wantCaption: true},
 		{name: "text only", title: "Short title", wantCalls: []string{"sendMessage"}},
-		{name: "single photo", images: photos[:1], title: "Short title", wantCalls: []string{"sendMessage"}},
+		{name: "single photo", images: photos[:1], title: "Short title", wantCalls: []string{"sendPhoto"}},
 		{name: "forum album", images: photos, title: "Short title", threadID: 123, wantCalls: []string{"sendMediaGroup"}, wantCaption: true},
 		{name: "forum long text", images: photos, title: strings.Repeat("b", 1100), threadID: 123, wantCalls: []string{"sendMediaGroup", "sendMessage"}},
 		{name: "forum text", title: "Short title", threadID: 123, wantCalls: []string{"sendMessage"}},
@@ -62,6 +62,9 @@ func TestBroadcastNewsAlbum(t *testing.T) {
 						return
 					}
 					fmt.Fprint(w, `{"ok":true,"result":[]}`)
+				case "/botTEST/sendPhoto":
+					calls = append(calls, "sendPhoto")
+					fmt.Fprint(w, `{"ok":true,"result":{"message_id":1,"photo":[{"file_id":"photo-1"}]}}`)
 				case "/botTEST/sendMessage":
 					calls = append(calls, "sendMessage")
 					fmt.Fprint(w, `{"ok":true,"result":{"message_id":1}}`)

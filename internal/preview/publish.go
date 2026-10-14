@@ -1,6 +1,7 @@
 package tgraph
 
 import (
+	"errors"
 	"html"
 	"math/rand"
 	"time"
@@ -11,6 +12,9 @@ import (
 )
 
 func PublishHtml(sourceTitle string, title string, rawLink string, htmlContent string) (string, error) {
+	if len(clientPool) == 0 {
+		return "", errors.New("Telegraph has no active account")
+	}
 	htmlContent = html.UnescapeString(htmlContent)
 	rand.Seed(time.Now().Unix()) // initialize global pseudo random generator
 	client := clientPool[rand.Intn(len(clientPool))]

@@ -26,7 +26,7 @@ var (
 
 	// EnableTelegraph 是否启用telegraph
 	EnableTelegraph       bool = false
-	PreviewText           int  = 0
+	PreviewText           int  = 400
 	DisableWebPagePreview bool = false
 	mysqlConfig           *mysql.Config
 	SQLitePath            string
@@ -62,27 +62,17 @@ var (
 
 const (
 	defaultMessageTplMode = tb.ModeHTML
-	defaultMessageTpl     = `<b>{{.SourceTitle}}</b>{{ if .PreviewText }}
----------- Preview ----------
-{{.PreviewText}}
------------------------------
-{{- end}}{{if .EnableTelegraph}}
-{{.ContentTitle}} <a href="{{.TelegraphURL}}">Telegraph</a> | <a href="{{.RawLink}}">原文</a>
-{{- else }}
-<a href="{{.RawLink}}">{{.ContentTitle}}</a>
-{{- end }}
-{{.Tags}}
+	defaultMessageTpl     = `<b>{{.SourceTitle}}</b>
+<a href="{{.RawLink}}">{{.ContentTitle}}</a>{{if .PreviewText}}
+{{.PreviewText}}{{end}}{{if .EnableTelegraph}}
+<a href="{{.TelegraphURL}}">阅读全文</a> · <a href="{{.RawLink}}">原文</a>{{end}}{{if .Tags}}
+{{.Tags}}{{end}}
 `
-	defaultMessageMarkdownTpl = `** {{.SourceTitle}} **{{ if .PreviewText }}
----------- Preview ----------
-{{.PreviewText}}
------------------------------
-{{- end}}{{if .EnableTelegraph}}
-{{.ContentTitle}} [Telegraph]({{.TelegraphURL}}) | [原文]({{.RawLink}})
-{{- else }}
-[{{.ContentTitle}}]({{.RawLink}})
-{{- end }}
-{{.Tags}}
+	defaultMessageMarkdownTpl = `** {{.SourceTitle}} **
+[{{.ContentTitle}}]({{.RawLink}}){{if .PreviewText}}
+{{.PreviewText}}{{end}}{{if .EnableTelegraph}}
+[阅读全文]({{.TelegraphURL}}) | [原文]({{.RawLink}}){{end}}{{if .Tags}}
+{{.Tags}}{{end}}
 `
 	TestMode    RunType = "Test"
 	ReleaseMode RunType = "Release"
