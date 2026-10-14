@@ -2,7 +2,6 @@ package handler
 
 import (
 	"bytes"
-	"context"
 	"text/template"
 
 	tb "gopkg.in/telebot.v3"
@@ -11,6 +10,7 @@ import (
 	"github.com/indes/flowerss-bot/internal/bot/session"
 	"github.com/indes/flowerss-bot/internal/config"
 	"github.com/indes/flowerss-bot/internal/core"
+	"github.com/indes/flowerss-bot/internal/topic"
 )
 
 const (
@@ -58,16 +58,16 @@ func (b *NotificationSwitchButton) Handle(ctx tb.Context) error {
 	}
 
 	sourceID := uint(attachData.GetSourceId())
-	source, _ := b.core.GetSource(context.Background(), sourceID)
+	source, _ := b.core.GetSource(topic.Context(ctx), sourceID)
 	t := template.New("setting template")
 	_, _ = t.Parse(feedSettingTmpl)
 
-	err = b.core.ToggleSubscriptionNotice(context.Background(), subscriberID, sourceID)
+	err = b.core.ToggleSubscriptionNotice(topic.ForChat(ctx, subscriberID), subscriberID, sourceID)
 	if err != nil {
 		return ctx.Respond(&tb.CallbackResponse{Text: "error"})
 	}
 
-	sub, err := b.core.GetSubscription(context.Background(), subscriberID, sourceID)
+	sub, err := b.core.GetSubscription(topic.ForChat(ctx, subscriberID), subscriberID, sourceID)
 	if err != nil {
 		return ctx.Respond(&tb.CallbackResponse{Text: "error"})
 	}

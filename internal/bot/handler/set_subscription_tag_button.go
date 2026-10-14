@@ -54,7 +54,7 @@ func (b *SetSubscriptionTagButton) Handle(ctx tb.Context) error {
 
 	// 权限验证
 	if !b.feedSetAuth(c, attachData) {
-		return ctx.Send("无权限")
+		return ctx.Respond(&tb.CallbackResponse{Text: "无权限", ShowAlert: true})
 	}
 	sourceID := uint(attachData.GetSourceId())
 	msg := fmt.Sprintf(

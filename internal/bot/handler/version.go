@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"github.com/indes/flowerss-bot/internal/topic"
 	tb "gopkg.in/telebot.v3"
 
 	"github.com/indes/flowerss-bot/internal/config"
@@ -22,7 +23,7 @@ func (c *Version) Description() string {
 }
 
 func (c *Version) Handle(ctx tb.Context) error {
-	return ctx.Send(config.AppVersionInfo())
+	return topic.Send(ctx, config.AppVersionInfo())
 }
 
 func (c *Version) Middlewares() []tb.MiddlewareFunc {

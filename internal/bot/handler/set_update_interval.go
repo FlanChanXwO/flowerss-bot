@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"context"
 	"strconv"
 	"strings"
 
@@ -12,6 +11,7 @@ import (
 	"github.com/indes/flowerss-bot/internal/bot/session"
 	"github.com/indes/flowerss-bot/internal/core"
 	"github.com/indes/flowerss-bot/internal/log"
+	"github.com/indes/flowerss-bot/internal/topic"
 )
 
 type SetUpdateInterval struct {
@@ -59,7 +59,7 @@ func (s *SetUpdateInterval) Handle(ctx tb.Context) error {
 	for _, id := range args[1:] {
 		sourceID := cast.ToUint(id)
 		if err := s.core.SetSubscriptionInterval(
-			context.Background(), subscribeUserID, sourceID, interval,
+			topic.ForChat(ctx, subscribeUserID), subscribeUserID, sourceID, interval,
 		); err != nil {
 			log.Errorf("SetSubscriptionInterval failed, %v", err)
 			return ctx.Reply("抓取频率设置失败!")

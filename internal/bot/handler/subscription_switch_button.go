@@ -2,7 +2,6 @@ package handler
 
 import (
 	"bytes"
-	"context"
 	"text/template"
 
 	tb "gopkg.in/telebot.v3"
@@ -11,6 +10,7 @@ import (
 	"github.com/indes/flowerss-bot/internal/bot/session"
 	"github.com/indes/flowerss-bot/internal/config"
 	"github.com/indes/flowerss-bot/internal/core"
+	"github.com/indes/flowerss-bot/internal/topic"
 )
 
 const (
@@ -54,17 +54,21 @@ func (b *SubscriptionSwitchButton) Handle(ctx tb.Context) error {
 	}
 
 	sourceID := uint(attachData.GetSourceId())
-	sub, err := b.core.GetSubscription(context.Background(), subscriberID, sourceID)
+	sub, err := b.core.GetSubscription(topic.ForChat(ctx, subscriberID), subscriberID, sourceID)
 	if sub == nil || err != nil {
 		return ctx.Respond(&tb.CallbackResponse{Text: "error"})
 	}
 
-	err = b.core.ToggleSourceUpdateStatus(context.Background(), sourceID)
+	err = b.core.ToggleSubscriptionPaused(topic.ForChat(ctx, subscriberID), subscriberID, sourceID)
 	if err != nil {
 		return ctx.Respond(&tb.CallbackResponse{Text: "error"})
 	}
 
-	source, _ := b.core.GetSource(context.Background(), sourceID)
+	sub, err = b.core.GetSubscription(topic.ForChat(ctx, subscriberID), subscriberID, sourceID)
+	if err != nil {
+		return ctx.Respond(&tb.CallbackResponse{Text: "error"})
+	}
+	source, _ := b.core.GetSource(topic.Context(ctx), sourceID)
 	t := template.New("setting template")
 	_, _ = t.Parse(feedSettingTmpl)
 

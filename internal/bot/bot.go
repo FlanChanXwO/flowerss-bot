@@ -16,6 +16,7 @@ import (
 	"github.com/indes/flowerss-bot/internal/core"
 	"github.com/indes/flowerss-bot/internal/log"
 	"github.com/indes/flowerss-bot/internal/model"
+	"github.com/indes/flowerss-bot/internal/topic"
 )
 
 type Bot struct {
@@ -141,6 +142,9 @@ func (b *Bot) BroadcastNews(source *model.Source, subs []*model.Subscribe, conte
 		previewText := preview.TrimDescription(content.Description, config.PreviewText)
 
 		for _, sub := range subs {
+			if sub.Paused {
+				continue
+			}
 			tpldata := &config.TplData{
 				SourceTitle:     source.Title,
 				ContentTitle:    content.Title,
@@ -158,6 +162,7 @@ func (b *Bot) BroadcastNews(source *model.Source, subs []*model.Subscribe, conte
 				DisableWebPagePreview: config.DisableWebPagePreview,
 				ParseMode:             config.MessageMode,
 				DisableNotification:   sub.EnableNotification != 1,
+				ThreadID:              sub.ThreadID,
 			}
 			msg, err := tpldata.Render(config.MessageMode)
 			if err != nil {
@@ -192,7 +197,7 @@ func (b *Bot) BroadcastNews(source *model.Source, subs []*model.Subscribe, conte
 						"title", source.Title,
 						"link", source.Link,
 					)
-					b.core.Unsubscribe(context.Background(), sub.UserID, sub.SourceID)
+					b.core.Unsubscribe(topic.WithThreadID(context.Background(), sub.ThreadID), sub.UserID, sub.SourceID)
 				}
 
 				/*
@@ -227,6 +232,7 @@ func (b *Bot) BroadcastSourceError(source *model.Source) {
 		_, _ = b.tb.Send(
 			&u, message, &tb.SendOptions{
 				ParseMode: tb.ModeMarkdown,
+				ThreadID:  sub.ThreadID,
 			},
 		)
 	}

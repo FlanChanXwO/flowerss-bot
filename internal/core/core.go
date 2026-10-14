@@ -19,6 +19,7 @@ import (
 	"github.com/indes/flowerss-bot/internal/model"
 	"github.com/indes/flowerss-bot/internal/preview"
 	"github.com/indes/flowerss-bot/internal/storage"
+	"github.com/indes/flowerss-bot/internal/topic"
 	"github.com/indes/flowerss-bot/pkg/client"
 )
 
@@ -164,6 +165,7 @@ func (c *Core) AddSubscription(ctx context.Context, userID int64, sourceID uint)
 
 	subscription := &model.Subscribe{
 		UserID:             userID,
+		ThreadID:           topic.ThreadID(ctx),
 		SourceID:           sourceID,
 		EnableNotification: 1,
 		EnableTelegraph:    1,
@@ -428,6 +430,25 @@ func (c *Core) ToggleSubscriptionNotice(ctx context.Context, userID int64, sourc
 		subscription.EnableNotification = 1
 	}
 	return c.subscriptionStorage.UpsertSubscription(ctx, userID, sourceID, subscription)
+}
+
+// SetSubscriptionPaused changes delivery only for the current chat/topic.
+func (c *Core) SetSubscriptionPaused(ctx context.Context, userID int64, sourceID uint, paused bool) error {
+	subscription, err := c.GetSubscription(ctx, userID, sourceID)
+	if err != nil {
+		return err
+	}
+	subscription.Paused = paused
+	return c.subscriptionStorage.UpsertSubscription(ctx, userID, sourceID, subscription)
+}
+
+// ToggleSubscriptionPaused does not affect other topics subscribed to the same feed.
+func (c *Core) ToggleSubscriptionPaused(ctx context.Context, userID int64, sourceID uint) error {
+	subscription, err := c.GetSubscription(ctx, userID, sourceID)
+	if err != nil {
+		return err
+	}
+	return c.SetSubscriptionPaused(ctx, userID, sourceID, !subscription.Paused)
 }
 
 func (c *Core) ToggleSourceUpdateStatus(ctx context.Context, sourceID uint) error {
