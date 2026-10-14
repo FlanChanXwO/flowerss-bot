@@ -6,34 +6,33 @@
 
 ## Docker 部署
 
-1.下载配置文件
-在项目目录下新建 `config.yml` 文件
+无需在服务器安装 Go 或构建 Docker 镜像。GitHub Actions 会自动将 amd64/arm64 镜像发布到 GHCR。
 
+1. 下载配置文件
 
 ```bash
-mkdir ~/flowerss &&\
-wget -O ~/flowerss/config.yml \
-    https://raw.githubusercontent.com/indes/flowerss-bot/master/config.yml.sample
+mkdir -p ~/flowerss
+curl -fsSL https://raw.githubusercontent.com/FlanChanXwO/flowerss-bot/master/config.yml.sample \
+  -o ~/flowerss/config.yml
 ```
 
-
-2.修改配置文件
+2. 修改配置文件中的 `bot_token`。SQLite 使用默认 `./data.db` 即可，数据保存在挂载目录。
 
 ```bash
 vim ~/flowerss/config.yml
 ```
 
-修改配置文件中sqlite路径（如果使用sqlite作为数据库）：
-```yaml
-sqlite:
-  path: /root/.flowerss/data.db
+3. 拉取已经构建好的镜像并启动：
+
+```bash
+docker pull ghcr.io/flanchanxwo/flowerss-bot:latest
+docker run -d --name flowerss-bot --restart unless-stopped \
+  -v "$HOME/flowerss:/root/.flowerss" \
+  ghcr.io/flanchanxwo/flowerss-bot:latest
 ```
 
-3.运行
-
-```shell script
-docker run -d -v ~/flowerss:/root/.flowerss indes/flowerss-bot
-```
+之后更新只需重新 `docker pull` 并重建容器。也可使用仓库中的 `docker-compose.yml`，
+先将配置文件保存到 `./conf/config.yml`，执行 `docker compose pull && docker compose up -d --no-build`。
 
 ## 源码编译部署
 
