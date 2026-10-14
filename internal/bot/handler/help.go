@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"github.com/indes/flowerss-bot/internal/topic"
 	tb "gopkg.in/telebot.v3"
 )
 
@@ -37,7 +38,7 @@ func (h *Help) Handle(ctx tb.Context) error {
 	/unsuball 取消所有订阅
 	详细使用方法请看：https://github.com/indes/flowerss-bot
 	`
-	return ctx.Send(message)
+	return topic.Send(ctx, message)
 }
 
 func (h *Help) Middlewares() []tb.MiddlewareFunc {

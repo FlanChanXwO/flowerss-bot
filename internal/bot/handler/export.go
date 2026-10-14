@@ -15,6 +15,7 @@ import (
 	"github.com/indes/flowerss-bot/internal/log"
 	"github.com/indes/flowerss-bot/internal/model"
 	"github.com/indes/flowerss-bot/internal/opml"
+	"github.com/indes/flowerss-bot/internal/topic"
 )
 
 type Export struct {
@@ -70,33 +71,33 @@ func (e *Export) Handle(ctx tb.Context) error {
 	var sources []*model.Source
 	if mention == "" {
 		var err error
-		sources, err = e.core.GetUserSubscribedSources(context.Background(), ctx.Chat().ID)
+		sources, err = e.core.GetUserSubscribedSources(topic.Context(ctx), ctx.Chat().ID)
 		if err != nil {
 			log.Error(err)
-			return ctx.Send("导出失败")
+			return topic.Send(ctx, "导出失败")
 		}
 	} else {
 		var err error
 		sources, err = e.getChannelSources(ctx.Bot(), ctx.Chat().ID, mention)
 		if err != nil {
 			log.Error(err)
-			return ctx.Send("导出失败")
+			return topic.Send(ctx, "导出失败")
 		}
 	}
 
 	if len(sources) == 0 {
-		return ctx.Send("订阅列表为空")
+		return topic.Send(ctx, "订阅列表为空")
 	}
 
 	opmlStr, err := opml.ToOPML(sources)
 	if err != nil {
-		return ctx.Send("导出失败")
+		return topic.Send(ctx, "导出失败")
 	}
 	opmlFile := &tb.Document{File: tb.FromReader(strings.NewReader(opmlStr))}
 	opmlFile.FileName = fmt.Sprintf("subscriptions_%d.opml", time.Now().Unix())
-	if err := ctx.Send(opmlFile); err != nil {
+	if err := topic.Send(ctx, opmlFile); err != nil {
 		log.Errorf("send OPML file failed, err:%v", err)
-		return ctx.Send("导出失败")
+		return topic.Send(ctx, "导出失败")
 	}
 	return nil
 }

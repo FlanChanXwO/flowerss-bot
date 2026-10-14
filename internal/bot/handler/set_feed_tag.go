@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"context"
 	"strings"
 
 	"github.com/spf13/cast"
@@ -10,6 +9,7 @@ import (
 	"github.com/indes/flowerss-bot/internal/bot/message"
 	"github.com/indes/flowerss-bot/internal/bot/session"
 	"github.com/indes/flowerss-bot/internal/core"
+	"github.com/indes/flowerss-bot/internal/topic"
 )
 
 type SetFeedTag struct {
@@ -55,7 +55,7 @@ func (s *SetFeedTag) Handle(ctx tb.Context) error {
 		subscribeUserID = mentionChat.ID
 	}
 
-	if err := s.core.SetSubscriptionTag(context.Background(), subscribeUserID, sourceID, args[1:]); err != nil {
+	if err := s.core.SetSubscriptionTag(topic.ForChat(ctx, subscribeUserID), subscribeUserID, sourceID, args[1:]); err != nil {
 		return ctx.Reply("订阅标签设置失败!")
 	}
 	return ctx.Reply("订阅标签设置成功!")

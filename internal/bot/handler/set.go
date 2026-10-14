@@ -2,7 +2,6 @@ package handler
 
 import (
 	"bytes"
-	"context"
 	"fmt"
 	"text/template"
 
@@ -13,6 +12,7 @@ import (
 	"github.com/indes/flowerss-bot/internal/config"
 	"github.com/indes/flowerss-bot/internal/core"
 	"github.com/indes/flowerss-bot/internal/model"
+	"github.com/indes/flowerss-bot/internal/topic"
 )
 
 type Set struct {
@@ -42,7 +42,7 @@ func (s *Set) Handle(ctx tb.Context) error {
 		ownerID = mentionChat.ID
 	}
 
-	sources, err := s.core.GetUserSubscribedSources(context.Background(), ownerID)
+	sources, err := s.core.GetUserSubscribedSources(topic.ForChat(ctx, ownerID), ownerID)
 	if err != nil {
 		return ctx.Reply("获取订阅失败")
 	}
@@ -62,7 +62,7 @@ func (s *Set) Handle(ctx tb.Context) error {
 		}
 		replyKeys = append(replyKeys, replyButton)
 		attachData := &session.Attachment{
-			UserId:   ctx.Chat().ID,
+			UserId:   ownerID,
 			SourceId: uint32(source.ID),
 		}
 
@@ -96,7 +96,8 @@ const (
 [id] {{ .source.ID }}
 [标题] {{ .source.Title }}
 [Link] {{.source.Link }}
-[抓取更新] {{if ge .source.ErrorCount .Count }}暂停{{else if lt .source.ErrorCount .Count }}抓取中{{end}}
+[订阅推送] {{if .sub.Paused}}暂停{{else}}开启{{end}}
+[订阅源状态] {{if ge .source.ErrorCount .Count }}已停止{{else}}正常{{end}}
 [抓取频率] {{ .sub.Interval }}分钟
 [通知] {{if eq .sub.EnableNotification 0}}关闭{{else if eq .sub.EnableNotification 1}}开启{{end}}
 [Telegraph] {{if eq .sub.EnableTelegraph 0}}关闭{{else if eq .sub.EnableTelegraph 1}}开启{{end}}
@@ -130,7 +131,7 @@ func (r *SetFeedItemButton) Handle(ctx tb.Context) error {
 	subscriberID := attachData.GetUserId()
 	// 如果订阅者与按钮点击者id不一致，需要验证管理员权限
 	if subscriberID != ctx.Callback().Sender.ID {
-		channelChat, err := r.bot.ChatByUsername(fmt.Sprintf("%d", subscriberID))
+		channelChat, err := r.bot.ChatByID(subscriberID)
 		if err != nil {
 			return ctx.Edit("获取订阅信息失败")
 		}
@@ -141,12 +142,12 @@ func (r *SetFeedItemButton) Handle(ctx tb.Context) error {
 	}
 
 	sourceID := uint(attachData.GetSourceId())
-	source, err := r.core.GetSource(context.Background(), sourceID)
+	source, err := r.core.GetSource(topic.Context(ctx), sourceID)
 	if err != nil {
 		return ctx.Edit("找不到该订阅源")
 	}
 
-	sub, err := r.core.GetSubscription(context.Background(), subscriberID, source.ID)
+	sub, err := r.core.GetSubscription(topic.ForChat(ctx, subscriberID), subscriberID, source.ID)
 	if err != nil {
 		return ctx.Edit("用户未订阅该rss")
 	}
@@ -195,8 +196,8 @@ func genFeedSetBtn(
 		Data:   c.Data,
 	}
 
-	if source.ErrorCount >= config.ErrorThreshold {
-		toggleEnabledKey.Text = "重启更新"
+	if sub.Paused {
+		toggleEnabledKey.Text = "恢复推送"
 	}
 
 	feedSettingKeys := [][]tb.InlineButton{

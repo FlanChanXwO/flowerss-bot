@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"reflect"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -22,12 +23,18 @@ func TestBroadcastNewsAlbum(t *testing.T) {
 		albumError  bool
 		wantCalls   []string
 		wantCaption bool
+		threadID    int
+		paused      bool
 	}{
 		{name: "album caption", images: photos, title: "Short title", wantCalls: []string{"sendMediaGroup"}, wantCaption: true},
 		{name: "long text", images: photos, title: strings.Repeat("a", 1100), wantCalls: []string{"sendMediaGroup", "sendMessage"}},
 		{name: "failed album", images: photos, title: "Short title", albumError: true, wantCalls: []string{"sendMediaGroup", "sendMessage"}, wantCaption: true},
 		{name: "text only", title: "Short title", wantCalls: []string{"sendMessage"}},
 		{name: "single photo", images: photos[:1], title: "Short title", wantCalls: []string{"sendMessage"}},
+		{name: "forum album", images: photos, title: "Short title", threadID: 123, wantCalls: []string{"sendMediaGroup"}, wantCaption: true},
+		{name: "forum long text", images: photos, title: strings.Repeat("b", 1100), threadID: 123, wantCalls: []string{"sendMediaGroup", "sendMessage"}},
+		{name: "forum text", title: "Short title", threadID: 123, wantCalls: []string{"sendMessage"}},
+		{name: "forum paused subscription", images: photos, title: "Short title", threadID: 123, paused: true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			var calls []string
@@ -37,6 +44,11 @@ func TestBroadcastNewsAlbum(t *testing.T) {
 				if err := json.NewDecoder(r.Body).Decode(&params); err != nil {
 					t.Errorf("invalid Bot API request: %v", err)
 					return
+				}
+				if got := params["message_thread_id"]; got != "" || tc.threadID != 0 {
+					if got != strconv.Itoa(tc.threadID) {
+						t.Errorf("message_thread_id = %q, expected %d", got, tc.threadID)
+					}
 				}
 				switch r.URL.Path {
 				case "/botTEST/sendMediaGroup":
@@ -66,13 +78,13 @@ func TestBroadcastNewsAlbum(t *testing.T) {
 			b := &Bot{tb: tg}
 			b.BroadcastNews(
 				&model.Source{ID: 1, Title: "Feed", Link: "https://example.com/rss"},
-				[]*model.Subscribe{{UserID: 42}},
+				[]*model.Subscribe{{UserID: 42, ThreadID: tc.threadID, Paused: tc.paused}},
 				[]*model.Content{{Title: tc.title, RawLink: "https://example.com/post", ImageURLs: tc.images}},
 			)
 			if !reflect.DeepEqual(calls, tc.wantCalls) {
 				t.Fatalf("API calls = %v, want %v", calls, tc.wantCalls)
 			}
-			if len(tc.images) >= 2 {
+			if len(tc.images) >= 2 && !tc.paused {
 				if len(media) != 2 || media[0]["media"] != photos[0] || media[1]["media"] != photos[1] {
 					t.Fatalf("wrong album contents: %v", media)
 				}

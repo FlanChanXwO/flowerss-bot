@@ -2,6 +2,7 @@ package handler
 
 import (
 	"fmt"
+	"github.com/indes/flowerss-bot/internal/topic"
 
 	tb "gopkg.in/telebot.v3"
 
@@ -25,7 +26,7 @@ func (s *Start) Description() string {
 
 func (s *Start) Handle(ctx tb.Context) error {
 	log.Infof("/start id: %d", ctx.Chat().ID)
-	return ctx.Send(fmt.Sprintf("你好，欢迎使用flowerss。"))
+	return topic.Send(ctx, fmt.Sprintf("你好，欢迎使用flowerss。"))
 }
 
 func (s *Start) Middlewares() []tb.MiddlewareFunc {

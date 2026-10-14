@@ -1,11 +1,10 @@
 package handler
 
 import (
-	"context"
-
 	tb "gopkg.in/telebot.v3"
 
 	"github.com/indes/flowerss-bot/internal/core"
+	"github.com/indes/flowerss-bot/internal/topic"
 )
 
 type RemoveAllSubscription struct {
@@ -24,7 +23,7 @@ func (r RemoveAllSubscription) Description() string {
 }
 
 func (r RemoveAllSubscription) Handle(ctx tb.Context) error {
-	reply := "是否退订当前用户的所有订阅？"
+	reply := "是否退订当前话题的所有订阅？"
 	var confirmKeys [][]tb.InlineButton
 	confirmKeys = append(
 		confirmKeys, []tb.InlineButton{
@@ -67,7 +66,7 @@ func (r *RemoveAllSubscriptionButton) Description() string {
 }
 
 func (r *RemoveAllSubscriptionButton) Handle(ctx tb.Context) error {
-	err := r.core.UnsubscribeAllSource(context.Background(), ctx.Sender().ID)
+	err := r.core.UnsubscribeAllSource(topic.Context(ctx), ctx.Chat().ID)
 	if err != nil {
 		return ctx.Edit("退订失败")
 	}

@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"strings"
@@ -11,6 +10,7 @@ import (
 	"github.com/indes/flowerss-bot/internal/core"
 	"github.com/indes/flowerss-bot/internal/log"
 	"github.com/indes/flowerss-bot/internal/opml"
+	"github.com/indes/flowerss-bot/internal/topic"
 
 	tb "gopkg.in/telebot.v3"
 )
@@ -64,26 +64,31 @@ func (o *OnDocument) Handle(ctx tb.Context) error {
 		userID = mentionChat.ID
 	}
 
+	topicCtx := topic.ForChat(ctx, userID)
 	outlines, _ := opmlFile.GetFlattenOutlines()
 	var failImportList = make([]opml.Outline, len(outlines))
 	failIndex := 0
 	var successImportList = make([]opml.Outline, len(outlines))
 	successIndex := 0
 	wg := &sync.WaitGroup{}
+	var resultMu sync.Mutex
 	for _, outline := range outlines {
 		outline := outline
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			source, err := o.core.CreateSource(context.Background(), outline.XMLURL)
+			source, err := o.core.CreateSource(topicCtx, outline.XMLURL)
 			if err != nil {
+				resultMu.Lock()
 				failImportList[failIndex] = outline
 				failIndex++
+				resultMu.Unlock()
 				return
 			}
 
-			err = o.core.AddSubscription(context.Background(), userID, source.ID)
+			err = o.core.AddSubscription(topicCtx, userID, source.ID)
 			if err != nil {
+				resultMu.Lock()
 				if err == core.ErrSubscriptionExist {
 					successImportList[successIndex] = outline
 					successIndex++
@@ -91,12 +96,15 @@ func (o *OnDocument) Handle(ctx tb.Context) error {
 					failImportList[failIndex] = outline
 					failIndex++
 				}
+				resultMu.Unlock()
 				return
 			}
 
 			log.Infof("%d subscribe [%d]%s %s", ctx.Chat().ID, source.ID, source.Title, source.Link)
+			resultMu.Lock()
 			successImportList[successIndex] = outline
 			successIndex++
+			resultMu.Unlock()
 			return
 		}()
 	}

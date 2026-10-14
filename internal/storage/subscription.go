@@ -8,6 +8,7 @@ import (
 
 	"github.com/indes/flowerss-bot/internal/log"
 	"github.com/indes/flowerss-bot/internal/model"
+	"github.com/indes/flowerss-bot/internal/topic"
 )
 
 type SubscriptionStorageImpl struct {
@@ -32,7 +33,7 @@ func (s *SubscriptionStorageImpl) AddSubscription(ctx context.Context, subscript
 
 func (s *SubscriptionStorageImpl) SubscriptionExist(ctx context.Context, userID int64, sourceID uint) (bool, error) {
 	var count int64
-	result := s.db.WithContext(ctx).Where("user_id = ? and source_id = ?", userID, sourceID).Count(&count)
+	result := s.db.WithContext(ctx).Where("user_id = ? and thread_id = ? and source_id = ?", userID, topic.ThreadID(ctx), sourceID).Count(&count)
 	if result.Error != nil {
 		return false, result.Error
 	}
@@ -43,7 +44,7 @@ func (s *SubscriptionStorageImpl) GetSubscription(ctx context.Context, userID in
 	*model.Subscribe, error,
 ) {
 	subscription := &model.Subscribe{}
-	result := s.db.WithContext(ctx).Where("user_id = ? and source_id = ?", userID, sourceID).First(subscription)
+	result := s.db.WithContext(ctx).Where("user_id = ? and thread_id = ? and source_id = ?", userID, topic.ThreadID(ctx), sourceID).First(subscription)
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			return nil, ErrRecordNotFound
@@ -62,7 +63,7 @@ func (s *SubscriptionStorageImpl) GetSubscriptionsByUserID(
 	orderBy := s.getSubscriptionsOrderBy(opts)
 	dbResult := s.db.WithContext(ctx).Where(
 		&model.Subscribe{UserID: userID},
-	).Limit(count).Order(orderBy).Offset(opts.Offset).Find(&subscriptions)
+	).Where("thread_id = ?", topic.ThreadID(ctx)).Limit(count).Order(orderBy).Offset(opts.Offset).Find(&subscriptions)
 	if dbResult.Error != nil {
 		if errors.Is(dbResult.Error, gorm.ErrRecordNotFound) {
 			return nil, ErrRecordNotFound
@@ -134,7 +135,7 @@ func (s *SubscriptionStorageImpl) CountSubscriptions(ctx context.Context) (int64
 
 func (s *SubscriptionStorageImpl) DeleteSubscription(ctx context.Context, userID int64, sourceID uint) (int64, error) {
 	result := s.db.WithContext(ctx).Where(
-		"user_id = ? and source_id = ?", userID, sourceID,
+		"user_id = ? and thread_id = ? and source_id = ?", userID, topic.ThreadID(ctx), sourceID,
 	).Delete(&model.Subscribe{})
 	if result.Error != nil {
 		return 0, result.Error
@@ -155,7 +156,7 @@ func (s *SubscriptionStorageImpl) UpdateSubscription(
 	ctx context.Context, userID int64, sourceID uint, newSubscription *model.Subscribe,
 ) error {
 	result := s.db.WithContext(ctx).Where(
-		"user_id = ? and source_id = ?", userID, sourceID,
+		"user_id = ? and thread_id = ? and source_id = ?", userID, topic.ThreadID(ctx), sourceID,
 	).Updates(newSubscription)
 	if result.Error != nil {
 		return result.Error
@@ -170,7 +171,7 @@ func (s *SubscriptionStorageImpl) UpsertSubscription(
 	ctx context.Context, userID int64, sourceID uint, newSubscription *model.Subscribe,
 ) error {
 	result := s.db.WithContext(ctx).Where(
-		"user_id = ? and source_id = ?", userID, sourceID,
+		"user_id = ? and thread_id = ? and source_id = ?", userID, topic.ThreadID(ctx), sourceID,
 	).Save(newSubscription)
 	if result.Error != nil {
 		return result.Error

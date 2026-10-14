@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"context"
 	"errors"
 	"fmt"
 
@@ -11,6 +10,7 @@ import (
 	"github.com/indes/flowerss-bot/internal/bot/message"
 	"github.com/indes/flowerss-bot/internal/core"
 	"github.com/indes/flowerss-bot/internal/log"
+	"github.com/indes/flowerss-bot/internal/topic"
 )
 
 type AddSubscription struct {
@@ -36,16 +36,16 @@ func (a *AddSubscription) addSubscriptionForChat(ctx tb.Context) error {
 	if sourceURL == "" {
 		// 未附带链接，使用
 		hint := fmt.Sprintf("请在命令后带上需要订阅的RSS URL，例如：%s https://justinpot.com/feed/", a.Command())
-		return ctx.Send(hint, &tb.SendOptions{ReplyTo: ctx.Message()})
+		return topic.Send(ctx, hint, &tb.SendOptions{ReplyTo: ctx.Message()})
 	}
 
-	source, err := a.core.CreateSource(context.Background(), sourceURL)
+	source, err := a.core.CreateSource(topic.Context(ctx), sourceURL)
 	if err != nil {
 		return ctx.Reply(fmt.Sprintf("%s，订阅失败", err))
 	}
 
 	log.Infof("%d subscribe [%d]%s %s", ctx.Chat().ID, source.ID, source.Title, source.Link)
-	if err := a.core.AddSubscription(context.Background(), ctx.Chat().ID, source.ID); err != nil {
+	if err := a.core.AddSubscription(topic.Context(ctx), ctx.Chat().ID, source.ID); err != nil {
 		if err == core.ErrSubscriptionExist {
 			return ctx.Reply("已订阅该源，请勿重复订阅")
 		}
@@ -88,7 +88,7 @@ func (a *AddSubscription) hasChannelPrivilege(bot *tb.Bot, channelChat *tb.Chat,
 func (a *AddSubscription) addSubscriptionForChannel(ctx tb.Context, channelName string) error {
 	sourceURL := message.URLFromMessage(ctx.Message())
 	if sourceURL == "" {
-		return ctx.Send("频道订阅请使用' /sub @ChannelID URL ' 命令")
+		return topic.Send(ctx, "频道订阅请使用' /sub @ChannelID URL ' 命令")
 	}
 
 	bot := ctx.Bot()
@@ -108,13 +108,13 @@ func (a *AddSubscription) addSubscriptionForChannel(ctx tb.Context, channelName 
 		return ctx.Reply("您或Bot不是频道管理员，无法设置订阅")
 	}
 
-	source, err := a.core.CreateSource(context.Background(), sourceURL)
+	source, err := a.core.CreateSource(topic.Context(ctx), sourceURL)
 	if err != nil {
 		return ctx.Reply(fmt.Sprintf("%s，订阅失败", err))
 	}
 
 	log.Infof("%d subscribe [%d]%s %s", channelChat.ID, source.ID, source.Title, source.Link)
-	if err := a.core.AddSubscription(context.Background(), channelChat.ID, source.ID); err != nil {
+	if err := a.core.AddSubscription(topic.ForChat(ctx, channelChat.ID), channelChat.ID, source.ID); err != nil {
 		if err == core.ErrSubscriptionExist {
 			return ctx.Reply("已订阅该源，请勿重复订阅")
 		}

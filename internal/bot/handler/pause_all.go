@@ -1,13 +1,13 @@
 package handler
 
 import (
-	"context"
 	"fmt"
 
 	tb "gopkg.in/telebot.v3"
 
 	"github.com/indes/flowerss-bot/internal/bot/session"
 	"github.com/indes/flowerss-bot/internal/core"
+	"github.com/indes/flowerss-bot/internal/topic"
 )
 
 type PauseAll struct {
@@ -38,13 +38,13 @@ func (p *PauseAll) Handle(ctx tb.Context) error {
 		}
 	}
 
-	source, err := p.core.GetUserSubscribedSources(context.Background(), subscribeUserID)
+	source, err := p.core.GetUserSubscribedSources(topic.ForChat(ctx, subscribeUserID), subscribeUserID)
 	if err != nil {
 		return ctx.Reply("系统错误")
 	}
 
 	for _, s := range source {
-		err := p.core.DisableSourceUpdate(context.Background(), s.ID)
+		err := p.core.SetSubscriptionPaused(topic.ForChat(ctx, subscribeUserID), subscribeUserID, s.ID, true)
 		if err != nil {
 			return ctx.Reply("暂停失败")
 		}
@@ -54,7 +54,7 @@ func (p *PauseAll) Handle(ctx tb.Context) error {
 	if channelChat != nil {
 		reply = fmt.Sprintf("频道 [%s](https://t.me/%s) 订阅已全部暂停", channelChat.Title, channelChat.Username)
 	}
-	return ctx.Send(
+	return topic.Send(ctx,
 		reply, &tb.SendOptions{
 			DisableWebPagePreview: true,
 			ParseMode:             tb.ModeMarkdown,

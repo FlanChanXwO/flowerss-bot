@@ -1,13 +1,13 @@
 package handler
 
 import (
-	"context"
 	"fmt"
 
 	tb "gopkg.in/telebot.v3"
 
 	"github.com/indes/flowerss-bot/internal/bot/session"
 	"github.com/indes/flowerss-bot/internal/core"
+	"github.com/indes/flowerss-bot/internal/topic"
 )
 
 type ActiveAll struct {
@@ -33,13 +33,13 @@ func (a *ActiveAll) Handle(ctx tb.Context) error {
 		subscribeUserID = mentionChat.ID
 	}
 
-	source, err := a.core.GetUserSubscribedSources(context.Background(), subscribeUserID)
+	source, err := a.core.GetUserSubscribedSources(topic.ForChat(ctx, subscribeUserID), subscribeUserID)
 	if err != nil {
 		return ctx.Reply("系统错误")
 	}
 
 	for _, s := range source {
-		err := a.core.EnableSourceUpdate(context.Background(), s.ID)
+		err := a.core.SetSubscriptionPaused(topic.ForChat(ctx, subscribeUserID), subscribeUserID, s.ID, false)
 		if err != nil {
 			return ctx.Reply("激活失败")
 		}

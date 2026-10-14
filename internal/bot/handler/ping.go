@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"github.com/indes/flowerss-bot/internal/topic"
 	tb "gopkg.in/telebot.v3"
 )
 
@@ -22,7 +23,7 @@ func (p *Ping) Description() string {
 }
 
 func (p *Ping) Handle(ctx tb.Context) error {
-	return ctx.Send("pong")
+	return topic.Send(ctx, "pong")
 }
 
 func (p *Ping) Middlewares() []tb.MiddlewareFunc {
