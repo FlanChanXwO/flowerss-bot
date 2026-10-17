@@ -299,14 +299,15 @@ func (c *Core) AddSourceContents(
 		if description == "" {
 			description = item.Description
 		}
+		media := feed.MediaItems(item)
 		previewURL := ""
-		if config.EnableTelegraph && len([]rune(description)) > config.PreviewText {
+		if config.EnableTelegraph && (len([]rune(description)) > config.PreviewText || len(media) > 10) {
 			previewURL, _ = tgraph.PublishHtml(source.Title, item.Title, item.Link, description)
 		}
 		content := &model.Content{
 			Title:        strings.Trim(item.Title, " "),
 			Description:  description,
-			Media:        feed.MediaItems(item),
+			Media:        media,
 			SourceID:     source.ID,
 			RawID:        item.GUID,
 			HashID:       model.GenHashID(source.Link, item.GUID),

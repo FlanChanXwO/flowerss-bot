@@ -18,10 +18,15 @@ import (
 type mediaAPICall struct {
 	Method  string
 	Caption string
+	Text    string
 	Media   []map[string]interface{}
 }
 
 func TestBroadcastRichMedia(t *testing.T) {
+	manyPhotos := make([]model.Media, 11)
+	for i := range manyPhotos {
+		manyPhotos[i] = model.Media{URL: fmt.Sprintf("https://example.com/photo%d.jpg", i), Kind: model.MediaPhoto}
+	}
 	base := []model.Media{
 		{URL: "https://example.com/photo.jpg", Kind: model.MediaPhoto},
 		{URL: "https://example.com/video.mp4", Kind: model.MediaVideo},
@@ -45,6 +50,8 @@ func TestBroadcastRichMedia(t *testing.T) {
 		{name: "mixed photo and video", media: base, title: "hello", want: []string{"sendMediaGroup"}, wantCaption: true},
 		{name: "animation then mixed", media: append([]model.Media{{URL: "https://example.com/clip.gif", Kind: model.MediaAnimation}}, base...), title: "hello", want: []string{"sendAnimation", "sendMediaGroup"}, wantCaption: true},
 		{name: "mixed then audio", media: append(append([]model.Media{}, base...), model.Media{URL: "https://example.com/audio.mp3", Kind: model.MediaAudio}), title: "hello", want: []string{"sendMediaGroup", "sendAudio"}, wantCaption: true},
+		{name: "large gallery with telegraph", media: manyPhotos, title: "hello", telegraphURL: "https://telegra.ph/gallery-01-01", enableTG: 1, want: []string{"sendMessage"}},
+		{name: "large gallery without telegraph", media: manyPhotos, title: "hello", want: []string{"sendMediaGroup", "sendPhoto"}, wantCaption: true},
 		{name: "long body without telegraph", media: base, title: "hello", description: strings.Repeat("X", 1350), previewLength: 1400, want: []string{"sendMediaGroup", "sendMessage"}},
 		{name: "long body with telegraph", media: base, title: "hello", description: strings.Repeat("X", 1350), previewLength: 1400, telegraphURL: "https://telegra.ph/read-01-01", enableTG: 1, want: []string{"sendMediaGroup"}, wantCaption: true},
 		{name: "unavailable video", media: base[1:], title: "hello", errorMethod: "sendVideo", want: []string{"sendVideo", "sendMessage"}},
@@ -64,7 +71,7 @@ func TestBroadcastRichMedia(t *testing.T) {
 					t.Errorf("%s posted to thread=%q, want 99", r.URL.Path, got)
 				}
 				method := strings.TrimPrefix(r.URL.Path, "/botTEST/")
-				c := mediaAPICall{Method: method, Caption: params["caption"]}
+				c := mediaAPICall{Method: method, Caption: params["caption"], Text: params["text"]}
 				if method == "sendMediaGroup" {
 					if err := json.Unmarshal([]byte(params["media"]), &c.Media); err != nil {
 						t.Errorf("invalid group: %v", err)
@@ -118,7 +125,7 @@ func TestBroadcastRichMedia(t *testing.T) {
 			if tc.wantCaption && len(calls) > 0 && calls[0].Caption == "" {
 				t.Fatalf("media caption missing: %#v", calls)
 			}
-			if tc.telegraphURL != "" && !strings.Contains(calls[0].Caption, tc.telegraphURL) {
+			if tc.telegraphURL != "" && !strings.Contains(calls[0].Caption+calls[0].Text, tc.telegraphURL) {
 				t.Fatalf("long Telegraph article lost reading link: %#v", calls)
 			}
 			if tc.name == "mixed photo and video" && (calls[0].Media[0]["type"] != "photo" || calls[0].Media[1]["type"] != "video") {
