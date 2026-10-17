@@ -180,6 +180,10 @@ func (b *Bot) BroadcastNews(source *model.Source, subs []*model.Subscribe, conte
 					media = append(media, model.Media{URL: url, Kind: model.MediaPhoto})
 				}
 			}
+			if len(media) > 10 && tpldata.EnableTelegraph {
+				// Keep large galleries in Telegraph when a reading page is available.
+				media = nil
+			}
 			caption := msg
 			if !albumCaptionFits(caption) && tpldata.EnableTelegraph {
 				// For a long article, use a short media caption linking to its
