@@ -57,7 +57,7 @@ func TestRSSDeliveryDoesNotRetryNonFloodErrors(t *testing.T) {
 	defer server.Close()
 
 	b := newTestDeliveryBot(t, server)
-	if err := b.sendNewsMessage(&tb.Chat{ID: -10042}, "test", nil); err == nil {
+	if err := b.sendNewsMessage(&tb.Chat{ID: -10042}, "test", &tb.SendOptions{}); err == nil {
 		t.Fatal("expected HTTP 400 error")
 	}
 	if calls != 1 {
@@ -79,7 +79,7 @@ func TestRSSDeliveryRateLimitsSameChat(t *testing.T) {
 	b := newTestDeliveryBot(t, server)
 	b.sendInterval = 70 * time.Millisecond
 	for i := 0; i < 2; i++ {
-		if err := b.sendNewsMessage(&tb.Chat{ID: -10042}, "test", nil); err != nil {
+		if err := b.sendNewsMessage(&tb.Chat{ID: -10042}, "test", &tb.SendOptions{}); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -115,10 +115,10 @@ func TestRSSDeliveryAlbumReservesAllMediaSlots(t *testing.T) {
 		&tb.Photo{File: tb.FromURL("https://example.com/2.jpg")},
 		&tb.Photo{File: tb.FromURL("https://example.com/3.jpg")},
 	}
-	if err := b.sendNewsAlbum(&tb.Chat{ID: -10042}, album, nil); err != nil {
+	if err := b.sendNewsAlbum(&tb.Chat{ID: -10042}, album, &tb.SendOptions{}); err != nil {
 		t.Fatal(err)
 	}
-	if err := b.sendNewsMessage(&tb.Chat{ID: -10042}, "after album", nil); err != nil {
+	if err := b.sendNewsMessage(&tb.Chat{ID: -10042}, "after album", &tb.SendOptions{}); err != nil {
 		t.Fatal(err)
 	}
 	mu.Lock()
