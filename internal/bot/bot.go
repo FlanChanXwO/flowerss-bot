@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"sync"
 	"time"
 
 	"go.uber.org/zap"
@@ -21,7 +22,10 @@ import (
 
 type Bot struct {
 	core *core.Core
-	tb   *tb.Bot // telebot.Bot instance
+	tb           *tb.Bot // telebot.Bot instance
+	sendMu       sync.Mutex
+	nextSend     map[string]time.Time
+	sendInterval time.Duration
 }
 
 func NewBot(core *core.Core) *Bot {
@@ -39,7 +43,8 @@ func NewBot(core *core.Core) *Bot {
 	}
 
 	b := &Bot{
-		core: core,
+		core:         core,
+		sendInterval: 3500 * time.Millisecond, // Telegram supergroup limit: ~20 messages/minute.
 	}
 
 	var err error
@@ -202,7 +207,8 @@ func (b *Bot) BroadcastNews(source *model.Source, subs []*model.Subscribe, conte
 			if captionSent {
 				continue
 			}
-			if _, err := b.tb.Send(u, msg, o); err != nil {
+			if err := b.sendNewsMessage(u, msg, o); err != nil {
+				zap.S().Errorw("broadcast news text send failed", "error", err, "source id", source.ID, "user id", sub.UserID)
 
 				if strings.Contains(err.Error(), "Forbidden") {
 					zap.S().Errorw(
@@ -245,11 +251,11 @@ func (b *Bot) BroadcastSourceError(source *model.Source) {
 			"[%s](%s) 已经累计连续%d次更新失败，暂停更新", source.Title, source.Link, config.ErrorThreshold,
 		)
 		u.ID = sub.UserID
-		_, _ = b.tb.Send(
-			&u, message, &tb.SendOptions{
-				ParseMode: tb.ModeMarkdown,
-				ThreadID:  sub.ThreadID,
-			},
-		)
+		if err := b.sendNewsMessage(&u, message, &tb.SendOptions{
+			ParseMode: tb.ModeMarkdown,
+			ThreadID:  sub.ThreadID,
+		}); err != nil {
+			log.Errorf("notify source error failed: source=%d, err=%v", source.ID, err)
+		}
 	}
 }
