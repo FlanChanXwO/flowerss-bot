@@ -38,7 +38,7 @@ func (b *Bot) sendNewsMedia(to tb.Recipient, opts *tb.SendOptions, media []model
 		default:
 			return
 		}
-		if _, err := b.tb.Send(to, what, opts); err != nil {
+		if err := b.sendNewsMessage(to, what, opts); err != nil {
 			sendError = fmt.Errorf("send RSS media %s: %w", item.Kind, err)
 		} else if title != "" {
 			captionSent = true
@@ -75,7 +75,7 @@ func (b *Bot) sendNewsMedia(to tb.Recipient, opts *tb.SendOptions, media []model
 		if !captionSent {
 			album.SetCaption(caption)
 		}
-		if _, err := b.tb.SendAlbum(to, album, opts); err != nil {
+		if err := b.sendNewsAlbum(to, album, opts); err != nil {
 			// A single broken image must not suppress every other media item.
 			for k := i; k < j; k++ {
 				sendSingle(media[k])
