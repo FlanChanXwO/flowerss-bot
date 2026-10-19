@@ -248,7 +248,7 @@ func (b *Bot) BroadcastSourceError(source *model.Source) {
 	var u tb.User
 	for _, sub := range subs {
 		message := fmt.Sprintf(
-			"[%s](%s) 已经累计连续%d次更新失败，暂停更新", source.Title, source.Link, config.ErrorThreshold,
+			"[%s](%s) 已经连续%d次更新失败，将自动继续重试", source.Title, source.Link, config.ErrorThreshold,
 		)
 		u.ID = sub.UserID
 		if err := b.sendNewsMessage(&u, message, &tb.SendOptions{
