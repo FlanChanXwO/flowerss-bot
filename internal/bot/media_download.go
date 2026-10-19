@@ -46,21 +46,21 @@ func downloadRSSMedia(item model.Media, caption string) (interface{}, error) {
  case model.MediaPhoto:
   // Telegram photos accept JPEG/PNG; WebP needs conversion to JPEG.
   if strings.HasPrefix(ct,"image/webp") {
-   jpegBytes,convertErr:=convertRSSWebP(data)
-   if convertErr!=nil{return nil,convertErr}
-   file=tb.FromReader(bytes.NewReader(jpegBytes))
+   return &tb.Document{File:file,Caption:caption,FileName:"rss-image.webp",MIME:"image/webp"},nil
   } else if !strings.HasPrefix(ct,"image/jpeg") && !strings.HasPrefix(ct,"image/png") {
    return nil,fmt.Errorf("unsupported photo content type %s",ct)
   }
   return &tb.Photo{File:file,Caption:caption},nil
  case model.MediaVideo:
-  if !strings.HasPrefix(ct,"video/mp4") && !bytes.Contains(data[:min(len(data),32)],[]byte("ftyp")) {return nil,fmt.Errorf("unsupported video content type %s",ct)}
+  if !strings.HasPrefix(ct,"video/mp4") && !bytes.Contains(data[:mediaPrefixLength(len(data))],[]byte("ftyp")) {return nil,fmt.Errorf("unsupported video content type %s",ct)}
   return &tb.Video{File:file,Caption:caption,Streaming:true,FileName:"rss-video.mp4"},nil
  case model.MediaAnimation:
-  if !strings.HasPrefix(ct,"image/gif") && !bytes.Contains(data[:min(len(data),32)],[]byte("ftyp")) {return nil,fmt.Errorf("unsupported animation content type %s",ct)}
+  if !strings.HasPrefix(ct,"image/gif") && !bytes.Contains(data[:mediaPrefixLength(len(data))],[]byte("ftyp")) {return nil,fmt.Errorf("unsupported animation content type %s",ct)}
   return &tb.Animation{File:file,Caption:caption,FileName:"rss-animation.gif"},nil
  case model.MediaAudio:
   return &tb.Audio{File:file,Caption:caption,FileName:"rss-audio.mp3"},nil
  }
  return nil,fmt.Errorf("unsupported media kind %s",item.Kind)
 }
+
+func mediaPrefixLength(n int) int { if n<32{return n};return 32 }
