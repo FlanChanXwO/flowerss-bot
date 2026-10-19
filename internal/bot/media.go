@@ -38,7 +38,16 @@ func (b *Bot) sendNewsMedia(to tb.Recipient, opts *tb.SendOptions, media []model
 		default:
 			return
 		}
-		if err := b.sendNewsMessage(to, what, opts); err != nil {
+		err := b.sendNewsMessage(to, what, opts)
+		if err != nil && isMediaURLFetchError(err) {
+			// Telegram cannot always fetch proxy URLs; upload server-side as a fallback.
+			if local, fetchErr := downloadRSSMedia(item, title); fetchErr == nil {
+				err = b.sendNewsMessage(to, local, opts)
+			} else {
+				err = fmt.Errorf("download media fallback: %w (Telegram: %v)", fetchErr, err)
+			}
+		}
+		if err != nil {
 			sendError = fmt.Errorf("send RSS media %s: %w", item.Kind, err)
 		} else if title != "" {
 			captionSent = true
