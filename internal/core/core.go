@@ -416,7 +416,12 @@ func (c *Core) SourceErrorCountIncr(ctx context.Context, sourceID uint) error {
 		return err
 	}
 
-	source.ErrorCount += 1
+	// Keep automatically failed sources retryable at the threshold. Values above
+	// the threshold are reserved for sources explicitly disabled by users.
+	if source.ErrorCount >= config.ErrorThreshold {
+		return nil
+	}
+	source.ErrorCount++
 	return c.sourceStorage.UpsertSource(ctx, sourceID, source)
 }
 

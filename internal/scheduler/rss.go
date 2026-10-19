@@ -52,6 +52,10 @@ func (t *RssUpdateTask) Stop() {
 }
 
 // Start run scheduler
+func sourcePollingDisabled(source *model.Source) bool {
+	return source.ErrorCount > config.ErrorThreshold
+}
+
 func (t *RssUpdateTask) Start() {
 	if config.RunMode == config.TestMode {
 		return
@@ -72,13 +76,17 @@ func (t *RssUpdateTask) Start() {
 				continue
 			}
 			for _, source := range sources {
-				if source.ErrorCount >= config.ErrorThreshold {
+				// ErrorCount == ErrorThreshold means a source failed repeatedly:
+				// continue probing it so transient outages can recover. A value
+				// above the threshold is an explicit user disable.
+				if sourcePollingDisabled(source) {
 					continue
 				}
 
 				newContents, err := t.getSourceNewContents(source)
 				if err != nil {
-					if source.ErrorCount >= config.ErrorThreshold {
+					// Notify only on the first transition to the error threshold.
+					if source.ErrorCount+1 == config.ErrorThreshold {
 						t.notifyAllObserverErrorUpdate(source)
 					}
 					continue
