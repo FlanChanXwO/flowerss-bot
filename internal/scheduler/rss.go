@@ -19,7 +19,6 @@ import (
 // RssUpdateObserver Rss Update observer
 type RssUpdateObserver interface {
 	SourceUpdate(*model.Source, []*model.Content, []*model.Subscribe)
-	SourceUpdateError(*model.Source)
 }
 
 // NewRssTask new RssUpdateTask
@@ -85,10 +84,6 @@ func (t *RssUpdateTask) Start() {
 
 				newContents, err := t.getSourceNewContents(source)
 				if err != nil {
-					// Notify only on the first transition to the error threshold.
-					if source.ErrorCount+1 == config.ErrorThreshold {
-						t.notifyAllObserverErrorUpdate(source)
-					}
 					continue
 				}
 
@@ -164,15 +159,3 @@ func (t *RssUpdateTask) notifyAllObserverUpdate(
 	wg.Wait()
 }
 
-// notifyAllObserverErrorUpdate notify all rss error SourceUpdate observer
-func (t *RssUpdateTask) notifyAllObserverErrorUpdate(source *model.Source) {
-	wg := sync.WaitGroup{}
-	for _, observer := range t.observerList {
-		wg.Add(1)
-		go func(o RssUpdateObserver) {
-			defer wg.Done()
-			o.SourceUpdateError(source)
-		}(observer)
-	}
-	wg.Wait()
-}
