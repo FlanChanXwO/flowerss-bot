@@ -2,7 +2,6 @@ package bot
 
 import (
 	"context"
-	"fmt"
 	"strings"
 	"sync"
 	"time"
@@ -129,10 +128,6 @@ func (b *Bot) SourceUpdate(
 	b.BroadcastNews(source, subscribes, newContents)
 }
 
-func (b *Bot) SourceUpdateError(source *model.Source) {
-	b.BroadcastSourceError(source)
-}
-
 // BroadcastNews send new contents message to subscriber
 func (b *Bot) BroadcastNews(source *model.Source, subs []*model.Subscribe, contents []*model.Content) {
 	zap.S().Infow(
@@ -239,23 +234,3 @@ func (b *Bot) BroadcastNews(source *model.Source, subs []*model.Subscribe, conte
 	}
 }
 
-// BroadcastSourceError send fetcher update error message to subscribers
-func (b *Bot) BroadcastSourceError(source *model.Source) {
-	subs, err := b.core.GetSourceAllSubscriptions(context.Background(), source.ID)
-	if err != nil {
-		log.Errorf("get subscriptions failed, %v", err)
-	}
-	var u tb.User
-	for _, sub := range subs {
-		message := fmt.Sprintf(
-			"[%s](%s) 已经连续%d次更新失败，将自动继续重试", source.Title, source.Link, config.ErrorThreshold,
-		)
-		u.ID = sub.UserID
-		if err := b.sendNewsMessage(&u, message, &tb.SendOptions{
-			ParseMode: tb.ModeMarkdown,
-			ThreadID:  sub.ThreadID,
-		}); err != nil {
-			log.Errorf("notify source error failed: source=%d, err=%v", source.ID, err)
-		}
-	}
-}
